@@ -104,6 +104,31 @@ def detectar_intencion_con_claude(texto: str) -> str:
     return intencion
 
 
+def generar_respuesta_ia(texto: str) -> str:
+    """
+    Genera una respuesta conversacional corta con Claude, para mostrarla
+    en el Serial Monitor del ESP32. Esto es independiente de la clasificación
+    de intención (que se sigue usando para elegir la pista del DFPlayer):
+    aquí simplemente le contestamos al usuario en lenguaje natural.
+    """
+    prompt = (
+        "Eres un asistente de voz amigable que responde en español. "
+        "Responde de forma breve (máximo 2 frases cortas) y natural, "
+        f"como si hablaras en voz alta. El usuario dijo: \"{texto}\"."
+    )
+
+    try:
+        respuesta = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=100,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return respuesta.content[0].text.strip()
+    except Exception:
+        # Si falla, no tumbamos el endpoint: simplemente no habrá texto de respuesta
+        return ""
+
+
 @app.get("/")
 def raiz():
     """Endpoint simple para confirmar que el servicio está activo (útil para revisar en Render)."""
@@ -119,7 +144,8 @@ async def procesar_audio(audio: UploadFile = File(...)):
     {
       "texto": "hola cómo estás",
       "intencion": "saludo",
-      "track": 1
+      "track": 1,
+      "respuesta": "¡Hola! Estoy muy bien, ¿en qué te ayudo hoy?"
     }
     """
     # Guardar el audio temporalmente porque Groq necesita un archivo, no bytes crudos
@@ -154,11 +180,13 @@ async def procesar_audio(audio: UploadFile = File(...)):
             intencion = "desconocido"
 
     track = TRACK_MAP.get(intencion, TRACK_MAP["desconocido"])
+    respuesta_ia = generar_respuesta_ia(texto)
 
     return {
         "texto": texto,
         "intencion": intencion,
         "track": track,
+        "respuesta": respuesta_ia,
     }
 
 
