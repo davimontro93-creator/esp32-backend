@@ -16,6 +16,8 @@ Variables de entorno necesarias (configurarlas en Render, NO en el código):
 import os
 import json
 import tempfile
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,10 +113,16 @@ def generar_respuesta_ia(texto: str) -> str:
     de intención (que se sigue usando para elegir la pista del DFPlayer):
     aquí simplemente le contestamos al usuario en lenguaje natural.
     """
+    ahora = datetime.now(ZoneInfo("America/Costa_Rica"))
+    hora_actual = ahora.strftime("%I:%M %p del %d/%m/%Y")
+
     prompt = (
         "Eres un asistente de voz amigable que responde en español. "
         "Responde de forma breve (máximo 2 frases cortas) y natural, "
-        f"como si hablaras en voz alta. El usuario dijo: \"{texto}\"."
+        "como si hablaras en voz alta. "
+        f"La hora y fecha actual es: {hora_actual} (hora de Costa Rica). "
+        "Si el usuario pregunta la hora o la fecha, usa este dato exacto. "
+        f"El usuario dijo: \"{texto}\"."
     )
 
     try:
